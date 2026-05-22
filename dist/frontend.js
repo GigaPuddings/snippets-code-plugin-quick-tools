@@ -1,4 +1,4 @@
-const m = "CNY", f = {
+const I = "CNY", m = {
   usd: "USD",
   dollar: "USD",
   dollars: "USD",
@@ -20,7 +20,7 @@ const m = "CNY", f = {
   gbp: "GBP",
   pound: "GBP",
   英镑: "GBP"
-}, b = {
+}, f = {
   kg: { base: "g", factor: 1e3 },
   千克: { base: "g", factor: 1e3 },
   公斤: { base: "g", factor: 1e3 },
@@ -46,7 +46,7 @@ const m = "CNY", f = {
   升: { base: "ml", factor: 1e3 },
   ml: { base: "ml", factor: 1 },
   毫升: { base: "ml", factor: 1 }
-}, i = (e) => Number.isInteger(e) ? String(e) : e.toLocaleString("zh-CN", { maximumFractionDigits: 6 }), I = (e, t, r, o, a = {}) => ({
+}, n = (e) => Number.isInteger(e) ? String(e) : e.toLocaleString("zh-CN", { maximumFractionDigits: 6 }), u = (e, t, r, o, a = {}) => ({
   id: e,
   title: t,
   content: r,
@@ -57,86 +57,89 @@ const m = "CNY", f = {
     query: o,
     ...a
   }
-}), d = (e) => {
+}), g = (e) => {
   const t = e.trim().replace(/（/g, "(").replace(/）/g, ")").replace(/×/g, "*").replace(/÷/g, "/").replace(/＝/g, "=").replace(/^calc(?:ulate)?\s*/i, "").replace(/^计算\s*/, "").replace(/=$/, "").trim();
   return !/[0-9]/.test(t) || !/^[\d+\-*/%().\s]+$/.test(t) || !/[+\-*/%]/.test(t) ? null : t;
-}, M = (e) => {
-  const t = d(e);
+}, d = (e) => {
+  const t = g(e);
   if (!t) return null;
   try {
     const r = Function(`"use strict"; return (${t})`)();
     if (typeof r != "number" || !Number.isFinite(r)) return null;
-    const o = i(r);
-    return I("quick-tools-calc", `${t} = ${o}`, o, e, {
+    const o = n(r);
+    return u("quick-tools-calc", `${t} = ${o}`, o, e, {
       tool: "calculator"
     });
   } catch {
     return null;
   }
-}, S = (e) => {
+}, M = (e) => {
   const t = e.trim().match(/^([\d.]+)\s*([a-zA-Z]+|[\u4e00-\u9fa5]+)\s*(?:=|to|转|换算(?:成)?|是多少)?\s*([a-zA-Z]+|[\u4e00-\u9fa5]+)$/i);
   if (!t) return null;
-  const r = Number(t[1]), o = b[t[2]], a = b[t[3]];
+  const r = Number(t[1]), o = f[t[2]], a = f[t[3]];
   if (!Number.isFinite(r) || !o || !a || o.base !== a.base) return null;
-  const n = r * o.factor / a.factor;
+  const c = r * o.factor / a.factor;
   return {
     amount: r,
     fromLabel: t[2],
     toLabel: t[3],
-    value: n
+    value: c
   };
-}, P = (e) => {
-  const t = S(e);
+}, S = (e) => {
+  const t = M(e);
   if (!t) return null;
-  const r = i(t.value);
-  return I(
+  const r = n(t.value);
+  return u(
     "quick-tools-unit",
-    `${i(t.amount)} ${t.fromLabel} = ${r} ${t.toLabel}`,
+    `${n(t.amount)} ${t.fromLabel} = ${r} ${t.toLabel}`,
     `${r} ${t.toLabel}`,
     e,
     { tool: "unit-converter" }
   );
-}, l = (e) => f[e.trim().toLowerCase()] ?? f[e.trim()] ?? null, p = (e) => {
+}, i = (e) => m[e.trim().toLowerCase()] ?? m[e.trim()] ?? null, P = (e) => {
   const t = e.trim(), r = t.match(/^([\d.]+)\s*([a-zA-Z]+|[\u4e00-\u9fa5]+)\s*(?:=|to|转|换算(?:成)?|是多少)?\s*([a-zA-Z]+|[\u4e00-\u9fa5]+)$/i), o = t.match(/^([\d.]+)\s*([a-zA-Z]+|[\u4e00-\u9fa5]+)$/i);
-  if (!r && o) {
-    const s = Number(o[1]), u = l(o[2]);
-    return !Number.isFinite(s) || !u || u === m ? null : { amount: s, from: u, to: m };
+  if (r) {
+    const a = Number(r[1]), c = i(r[2]), s = i(r[3]);
+    if (Number.isFinite(a) && c && s && c !== s)
+      return { amount: a, from: c, to: s };
   }
-  if (!r) return null;
-  const a = Number(r[1]), n = l(r[2]), c = l(r[3]);
-  return !Number.isFinite(a) || !n || !c || n === c ? null : { amount: a, from: n, to: c };
-}, v = async (e) => {
-  const t = p(e);
+  if (o) {
+    const a = Number(o[1]), c = i(o[2]);
+    return !Number.isFinite(a) || !c || c === I ? null : { amount: a, from: c, to: I };
+  }
+  return null;
+}, p = async (e) => {
+  const t = P(e);
   if (!t) return null;
   try {
     const r = `https://api.frankfurter.dev/v2/rate/${t.from}/${t.to}`, o = await fetch(r);
     if (!o.ok) return null;
-    const a = await o.json(), n = typeof a.rate == "number" ? a.rate * t.amount : void 0;
-    if (typeof n != "number") return null;
-    const c = a.date, s = i(n);
-    return I(
+    const a = await o.json(), c = typeof a.rate == "number" ? a.rate * t.amount : void 0;
+    if (typeof c != "number") return null;
+    const s = a.date, l = n(c);
+    return u(
       "quick-tools-currency",
-      `${i(t.amount)} ${t.from} = ${s} ${t.to}`,
-      `${s} ${t.to}，汇率日期 ${c ?? "latest"}`,
+      `${n(t.amount)} ${t.from} = ${l} ${t.to}`,
+      `${l} ${t.to}，汇率日期 ${s ?? "latest"}`,
       e,
       {
         tool: "currency-converter",
-        date: c,
+        date: s,
         provider: "Frankfurter"
       }
     );
   } catch {
     return null;
   }
-}, g = {
+}, b = {
   pluginId: "quick-tools",
   source: "quick-tools",
   async search(e) {
-    const t = [], r = P(e);
+    const t = [], r = S(e);
     r && t.push(r);
-    const o = M(e);
+    const o = d(e);
     o && t.push(o);
-    const a = await v(e);
+    const a = await p(e);
     return a && t.push(a), [
       {
         source: "quick-tools",
@@ -145,13 +148,13 @@ const m = "CNY", f = {
     ];
   }
 };
-function C(e) {
+function v(e) {
   e.registerSearchProvider({
-    source: g.source,
-    search: (t) => g.search(t)
+    source: b.source,
+    search: (t) => b.search(t)
   });
 }
 export {
-  C as activate,
-  C as default
+  v as activate,
+  v as default
 };
